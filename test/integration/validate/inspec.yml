@@ -1,0 +1,20 @@
+---
+name: validate
+title: Simple set of test scenarios for verifying GCP HTTPS LB with emulated SSE
+maintainer: Matthew Emes <m.emes@f5.com>
+license: Apache-2.0
+version: 0.1.0
+depends:
+  - name: inspec-httprb
+    git: https://github.com/memes/inspec-httprb
+    branch: main
+inputs:
+  - name: output_sse_url
+    type: string
+    required: true
+  - name: output_customer_url
+    type: string
+    required: true
+  - name: input_intercept_token
+    type: string
+    required: true

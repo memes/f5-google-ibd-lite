@@ -1,0 +1,82 @@
+#cloud-config
+# yamllint disable rule:line-length
+---
+write_files:
+  - path: /etc/systemd/system/iptables-sse.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=Configure iptables for SSE
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=true
+      ExecStart=/sbin/iptables -w -A INPUT -p tcp --dport 80 -j ACCEPT
+      ExecStart=/sbin/iptables -w -A INPUT -p tcp --dport 26000 -j ACCEPT
+  - path: /etc/systemd/system/sse.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=SSE via NGINX
+      Wants=docker.service iptables-sse.service
+      After=docker.service iptables-sse.service
+
+      [Service]
+      ExecStart=/usr/bin/docker run --rm --name sse -p 80:80 -p 26000:26000 -v /var/lib/sse/conf.d:/etc/nginx/conf.d:ro nginx:alpine
+      ExecStop=/usr/bin/docker stop sse
+      ExecStopPost=/usr/bin/docker rm sse
+  - path: /var/lib/sse/conf.d/default.conf
+    permissions: '0644'
+    owner: root
+    content: |
+      # Map to determine if a incoming request should be inspected and sent to a customer origin
+      map "$http_x_customer_nonce:$http_x_customer_intercept:$arg_x_customer_intercept:$uri" $inspect {
+        default "";
+        "~^${customer_nonce}:${intercept_token}:.*:${uri_matcher}" "true";
+        "~^${customer_nonce}:.*:${intercept_token}:${uri_matcher}" "true";
+      }
+      server {
+        listen 80 default_server;
+
+        # TODO @memes - still needed?
+        # https://blog.percy.io/tuning-nginx-behind-google-cloud-platform-http-s-load-balancer-305982ddb340
+        keepalive_timeout 650;
+        keepalive_requests 10000;
+
+        location /readyz {
+            add_header X-Shape-Method $request_method;
+            return 200 'sse-ready';
+        }
+
+        location / {
+          if ($inspect != "true") {
+            return 404;
+          }
+          if ($http_x_shape_reject_trigger) {
+            add_header X-Shape-Method $request_method;
+            return 403;
+          }
+          add_header X-Shape-Method $request_method;
+          add_header X-Shape-Proxied true;
+          proxy_set_header X-Shape-Nonce ${sse_nonce};
+          proxy_ssl_server_name on;
+          proxy_pass ${origin};
+        }
+      }
+      server {
+        listen 26000 default_server;
+        server_name _;
+
+        location /livez {
+            return 200 'sse-alive';
+        }
+        location / {
+            return 404;
+        }
+      }
+runcmd:
+  - systemctl daemon-reload
+  - systemctl start iptables-sse.service
+  - systemctl start sse.service

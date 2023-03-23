@@ -1,0 +1,66 @@
+#cloud-config
+# yamllint disable rule:line-length
+---
+write_files:
+  - path: /etc/systemd/system/iptables-customer.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=Configure iptables for customer
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=true
+      ExecStart=/sbin/iptables -w -A INPUT -p tcp --dport 80 -j ACCEPT
+      ExecStart=/sbin/iptables -w -A INPUT -p tcp --dport 26000 -j ACCEPT
+  - path: /etc/systemd/system/customer.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=customer via NGINX
+      Wants=docker.service iptables-customer.service
+      After=docker.service iptables-customer.service
+
+      [Service]
+      ExecStart=/usr/bin/docker run --rm --name customer -p 80:80 -p 26000:26000 -v /var/lib/customer/conf.d:/etc/nginx/conf.d:ro nginx:alpine
+      ExecStop=/usr/bin/docker stop customer
+      ExecStopPost=/usr/bin/docker rm customer
+  - path: /var/lib/customer/conf.d/default.conf
+    permissions: '0644'
+    owner: root
+    content: |
+      server {
+        listen 80 default_server;
+        server_name _;
+
+        # TODO @memes - still needed?
+        # https://blog.percy.io/tuning-nginx-behind-google-cloud-platform-http-s-load-balancer-305982ddb340
+        keepalive_timeout 650;
+        keepalive_requests 10000;
+
+        location /readyz {
+            return 200 'customer-ready';
+        }
+
+        location / {
+            add_header X-Customer-Origin true;
+            add_header X-Customer-Method $request_method;
+            return 200 'Hello from origin';
+        }
+      }
+      server {
+        listen 26000 default_server;
+        server_name _;
+        location /livez {
+            return 200 'customer-alive';
+        }
+        location / {
+            return 404;
+        }
+      }
+runcmd:
+  - systemctl daemon-reload
+  - systemctl start iptables-customer.service
+  - systemctl start customer.service

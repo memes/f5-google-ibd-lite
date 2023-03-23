@@ -1,0 +1,38 @@
+---
+driver:
+  name: terraform
+  command_timeout: 600
+  verify_version: true
+  variables:
+    regions: '[\"us-west1\"]'
+    customer_nonce: 757FA666-C4A6-4587-967F-632C4E49AF1A
+    sse_nonce: 0184B9B3-B94E-4357-8AC9-D6084F9356E5
+    intercept_token: AA14902A-2332-4BB3-B840-0DA8BD3D52D9
+
+provisioner:
+  name: terraform
+
+verifier:
+  name: terraform
+  color: true
+  systems:
+    - name: local
+      backend: local
+
+platforms:
+  - name: auto
+    driver:
+      root_module_directory: test/fixtures/full
+      variables:
+        prefix: ibd-lite-auto
+        setup_external_sse: 'true'
+    verifier:
+  - name: manual
+    driver:
+      root_module_directory: test/fixtures/full
+      variables:
+        prefix: ibd-lite-manual
+        setup_external_sse: 'false'
+
+suites:
+  - name: validate
