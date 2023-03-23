@@ -7,5 +7,5 @@ gem 'http', '~> 5.1.1'
 gem 'kitchen-terraform', '~> 6.1.0'
 group :dev do
   gem 'reek', '~> 6.1.1', require: false
-  gem 'rubocop', '~> 1.45.1', require: false
+  gem 'rubocop', '~> 1.48.1', require: false
 end
