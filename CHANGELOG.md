@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 (2023-03-23)
+
+
+### Features
+
+* Initial build of IBD lite demo from February ([6148ac7](https://github.com/memes/f5-google-ibd-lite/commit/6148ac7baaac8c39469242f3e2c33898e52d8ea5))
+
+## Changelog
+
 <!-- markdownlint-disable MD024 -->
 
 All notable changes to this project will be documented in this file.
