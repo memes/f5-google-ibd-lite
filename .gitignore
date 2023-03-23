@@ -3,12 +3,11 @@
 .direnv
 .tool-versions
 
-# Ignore generated Gorelease binaries
-dist/
-
 # Ignore Ruby
 .bundle
 Gemfile.lock
+.kitchen
+kitchen.local.yml
 
 # Ignore Terraform state and automatic var files - except examples
 .terraform
