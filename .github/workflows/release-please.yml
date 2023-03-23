@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Release Please
-        uses: GoogleCloudPlatform/release-please-action@v3.7.4
+        uses: GoogleCloudPlatform/release-please-action@v3.7.5
         with:
           # TODO @memes - make sure release-type and package-name are correct.
           release-type: go
